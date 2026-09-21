@@ -852,3 +852,152 @@
     });
 }());
 // CHECKOUT SEPETTE URUN YOK END //
+
+//WHATSAPP BUTTON //
+(function () {
+    'use strict';
+
+    var BUTTON_ID = 'moWhatsappButton';
+    var STYLE_ID = 'moWhatsappButtonStyles';
+    var PHONE_NUMBER = '905342796028';
+    var MESSAGE = 'Merhaba, Motif İstanbul hakkında bilgi almak istiyorum.';
+
+    function addStyles() {
+        if (document.getElementById(STYLE_ID)) return;
+
+        var style = document.createElement('style');
+        style.id = STYLE_ID;
+        style.textContent = `
+            #${BUTTON_ID}, #${BUTTON_ID} * { box-sizing:border-box; }
+            #${BUTTON_ID} {
+                --mo-wa-green:#25d366;
+                --mo-wa-teal:#0c4853;
+                position:fixed;
+                z-index:2147482000;
+                right:max(20px,env(safe-area-inset-right));
+                bottom:max(20px,env(safe-area-inset-bottom));
+                display:flex;
+                align-items:center;
+                gap:11px;
+                min-height:58px;
+                padding:8px 17px 8px 9px;
+                color:#fff;
+                font-family:'DM Sans',Arial,sans-serif;
+                text-decoration:none!important;
+                border:1px solid rgba(255,255,255,.22);
+                border-radius:18px;
+                background:var(--mo-wa-teal);
+                box-shadow:0 13px 34px rgba(3,35,94,.25);
+                isolation:isolate;
+                transition:transform .22s ease,box-shadow .22s ease,background .22s ease;
+                -webkit-tap-highlight-color:transparent;
+            }
+            #${BUTTON_ID}::before {
+                content:'';
+                position:absolute;
+                z-index:-1;
+                inset:0;
+                opacity:.12;
+                border-radius:inherit;
+                background-image:linear-gradient(rgba(255,255,255,.6) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.6) 1px,transparent 1px);
+                background-size:12px 12px;
+                pointer-events:none;
+            }
+            #${BUTTON_ID}:hover {
+                color:#fff;
+                background:#073b45;
+                box-shadow:0 17px 40px rgba(3,35,94,.31);
+                transform:translateY(-3px);
+            }
+            #${BUTTON_ID}:focus-visible {
+                outline:3px solid rgba(79,160,201,.5);
+                outline-offset:4px;
+            }
+            .mo-wa-icon {
+                position:relative;
+                flex:0 0 42px;
+                display:grid;
+                place-items:center;
+                width:42px;
+                height:42px;
+                color:#fff;
+                border-radius:13px;
+                background:var(--mo-wa-green);
+                box-shadow:0 6px 15px rgba(37,211,102,.25);
+            }
+            .mo-wa-icon::after {
+                content:'';
+                position:absolute;
+                top:1px;
+                right:1px;
+                width:8px;
+                height:8px;
+                border:2px solid var(--mo-wa-teal);
+                border-radius:50%;
+                background:#fff;
+            }
+            .mo-wa-icon svg { width:23px; height:23px; fill:currentColor; }
+            .mo-wa-copy { display:flex; flex-direction:column; min-width:0; line-height:1.15; }
+            .mo-wa-copy strong { color:#fff; font-size:12px; font-weight:700; letter-spacing:.01em; white-space:nowrap; }
+            .mo-wa-copy span { margin-top:4px; color:rgba(255,255,255,.68); font-size:9px; font-weight:500; letter-spacing:.035em; white-space:nowrap; }
+            @media(max-width:600px) {
+                #${BUTTON_ID} {
+                    right:max(13px,env(safe-area-inset-right));
+                    bottom:max(13px,env(safe-area-inset-bottom));
+                    min-height:54px;
+                    padding:6px 13px 6px 7px;
+                    border-radius:17px;
+                }
+                .mo-wa-icon { flex-basis:40px; width:40px; height:40px; }
+                .mo-wa-copy strong { font-size:11px; }
+                .mo-wa-copy span { display:none; }
+            }
+            @media(max-width:370px) {
+                #${BUTTON_ID} { width:54px; padding:6px; border-radius:17px; }
+                .mo-wa-copy { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
+            }
+            @media(prefers-reduced-motion:reduce) {
+                #${BUTTON_ID} { transition:none; }
+            }
+            @media print {
+                #${BUTTON_ID} { display:none!important; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    function createButton() {
+        if (document.getElementById(BUTTON_ID)) return;
+
+        var button = document.createElement('a');
+        button.id = BUTTON_ID;
+        button.href = 'https://wa.me/' + PHONE_NUMBER + '?text=' + encodeURIComponent(MESSAGE);
+        button.target = '_blank';
+        button.rel = 'noopener noreferrer';
+        button.setAttribute('aria-label', 'Motif İstanbul WhatsApp destek hattına yazın: +90 534 279 60 28');
+        button.innerHTML = `
+            <span class="mo-wa-icon" aria-hidden="true">
+                <svg viewBox="0 0 32 32"><path d="M16.04 3.2A12.7 12.7 0 0 0 5.3 22.7L3.2 28.8l6.33-2.03A12.76 12.76 0 1 0 16.04 3.2Zm0 22.95c-2.05 0-4.07-.55-5.83-1.59l-.42-.25-3.75 1.2 1.23-3.64-.27-.43a10.16 10.16 0 1 1 9.04 4.71Zm5.57-7.61c-.3-.15-1.8-.89-2.08-.99-.28-.1-.48-.15-.69.15-.2.31-.79 1-.97 1.2-.18.2-.36.23-.66.08-.31-.15-1.29-.48-2.45-1.51a9.15 9.15 0 0 1-1.7-2.12c-.18-.31-.02-.47.13-.62.14-.13.31-.36.46-.54.15-.18.2-.31.31-.51.1-.2.05-.38-.03-.54-.08-.15-.69-1.65-.94-2.26-.25-.6-.5-.51-.69-.52h-.58c-.2 0-.53.08-.81.38-.28.31-1.07 1.05-1.07 2.55s1.1 2.96 1.25 3.16c.15.2 2.15 3.29 5.21 4.61.73.31 1.3.5 1.74.64.73.23 1.39.2 1.92.12.58-.09 1.8-.74 2.05-1.45.25-.71.25-1.32.18-1.45-.08-.12-.28-.2-.58-.35Z"/></svg>
+            </span>
+            <span class="mo-wa-copy">
+                <strong>WhatsApp destek</strong>
+                <span>+90 534 279 60 28</span>
+            </span>
+        `;
+        document.body.appendChild(button);
+    }
+
+    function init() {
+        addStyles();
+        createButton();
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+}());
+
+
+//WHATSAPP BUTTON END //
