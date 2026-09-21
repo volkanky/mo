@@ -20,7 +20,9 @@
         var style = document.createElement('style');
         style.id = STYLE_ID;
         style.textContent = `
-            body.mo-about-ready #divIcerik.ticiContainer { width:100%!important; max-width:none!important; margin:0!important; padding:0!important; }
+            body.mo-about-ready #divIcerik.ticiContainer,
+            body.mo-about-ready #mainHolder_divDesign .t-vw-3 .ticiContainer { width:100%!important; max-width:none!important; margin-left:0!important; margin-right:0!important; }
+            body.mo-about-ready #divIcerik.ticiContainer { padding:0!important; }
             #${ROOT_ID}, #${ROOT_ID} * { box-sizing:border-box; }
             #${ROOT_ID} { --mo-navy:#03235e; --mo-teal:#0c4853; --mo-cyan:#4fa0c9; --mo-ink:#102338; --mo-muted:#667789; --mo-paper:#f3f8fa; --mo-line:#dce8ec; width:100%; overflow:hidden; color:var(--mo-ink); font-family:'DM Sans',Arial,sans-serif; background:#fff; }
             #${ROOT_ID} h1, #${ROOT_ID} h2, #${ROOT_ID} h3, #${ROOT_ID} p { margin-top:0; }
