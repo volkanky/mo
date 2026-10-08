@@ -31,6 +31,7 @@
                 padding:0!important;
             }
             body.mo-contact-ready #divIcerik > .centerCount.iletisimContent > .clear { display:none!important; }
+            body.mo-contact-ready .mo-contact-legacy-map { display:none!important; }
             #${ROOT_ID}, #${ROOT_ID} * { box-sizing:border-box; }
             #${ROOT_ID} {
                 --mo-navy:#03235e;
@@ -236,6 +237,12 @@
             #${ROOT_ID} .iletisimForm .Center,
             #${ROOT_ID} .iletisimForm .clear { float:none!important; width:auto!important; height:auto!important; margin:0!important; padding:0!important; border:0!important; background:transparent!important; }
             .mo-contact-fields { display:grid; gap:15px; }
+            #${ROOT_ID} .iletisimForm .mo-contact-obsolete { display:none!important; }
+            #${ROOT_ID} .iletisimForm .rowRight { display:grid!important; gap:15px; margin-top:15px!important; }
+            #${ROOT_ID} .iletisimForm .categoryTitle,
+            #${ROOT_ID} .iletisimForm .clear,
+            #${ROOT_ID} .mo-captcha > .Left,
+            #${ROOT_ID} .mo-captcha > .Center { display:none!important; }
             .mo-field { position:relative; display:block; }
             .mo-field label {
                 position:absolute;
@@ -289,15 +296,17 @@
                 background:transparent!important;
                 border:0!important;
             }
-            .mo-captcha {
+            #${ROOT_ID} .iletisimForm .mo-captcha {
+                display:block!important;
                 padding:14px!important;
                 border:1px solid var(--mo-line)!important;
                 border-radius:8px;
                 background:#f8fbfc!important;
             }
             .mo-captcha-label { display:block; margin-bottom:9px; color:#71818d; font-size:10px; font-weight:700; letter-spacing:.035em; }
-            #${ROOT_ID} .captchaImageBox { display:flex!important; align-items:center; gap:10px; margin-bottom:10px!important; }
-            #${ROOT_ID} .captchaImage { display:block!important; max-width:210px!important; height:48px!important; object-fit:contain; border-radius:6px; background:#fff; }
+            #${ROOT_ID} .mo-captcha > .Right { display:block!important; overflow:visible!important; }
+            #${ROOT_ID} .captchaImageBox { display:flex!important; align-items:center; gap:10px; min-height:48px; margin-bottom:10px!important; overflow:visible!important; }
+            #${ROOT_ID} .captchaImage { display:block!important; float:none!important; width:180px!important; max-width:calc(100% - 50px)!important; min-width:0!important; height:48px!important; visibility:visible!important; opacity:1!important; object-fit:contain; border-radius:6px; background:#fff; }
             #${ROOT_ID} .captchaRenew {
                 display:grid!important;
                 place-items:center;
@@ -467,6 +476,26 @@
             form.querySelector('input[name="ctl00$mainHolder$ucIletisim$txtbxTelefon"]');
     }
 
+    function normalizeCaptcha(form) {
+        var captcha = form && form.querySelector('.iletisimCaptcha');
+        if (!captcha) return;
+
+        captcha.classList.add('mo-captcha');
+        if (!captcha.querySelector('.mo-captcha-label')) {
+            var captchaLabel = document.createElement('label');
+            captchaLabel.className = 'mo-captcha-label';
+            captchaLabel.textContent = 'Güvenlik Kodu';
+            captchaLabel.htmlFor = 'mainHolder_ucIletisim_TiciCaptcha_TxtCpatcha';
+            captcha.insertBefore(captchaLabel, captcha.firstChild);
+        }
+
+        var captchaInput = captcha.querySelector('#mainHolder_ucIletisim_TiciCaptcha_TxtCpatcha');
+        if (captchaInput) {
+            captchaInput.setAttribute('placeholder', 'Kodu yazın');
+            captchaInput.setAttribute('autocomplete', 'off');
+        }
+    }
+
     function normalizeContactForm(form) {
         if (!form || form.getAttribute('data-mo-normalized') === 'true') return;
 
@@ -474,8 +503,6 @@
         var phoneInput = pickPhoneInput(form);
         var mailInput = form.querySelector('#mainHolder_ucIletisim_txtbxMail');
         var messageInput = form.querySelector('#mainHolder_ucIletisim_txtbxMesaj');
-        var captcha = form.querySelector('.iletisimCaptcha');
-        var submitWrap = form.querySelector('.iletisimBtn');
         var submit = form.querySelector('#mainHolder_ucIletisim_btnGonder');
 
         var nameValidate = form.querySelector('#mainHolder_ucIletisim_rfvbxAdSoyad');
@@ -519,26 +546,14 @@
             appendIfFound(fields, messageField);
         }
 
-        if (captcha) {
-            captcha.classList.add('mo-captcha');
-            var captchaLabel = document.createElement('span');
-            captchaLabel.className = 'mo-captcha-label';
-            captchaLabel.textContent = 'Güvenlik Kodu';
-            captcha.insertBefore(captchaLabel, captcha.firstChild);
-
-            var captchaInput = captcha.querySelector('#mainHolder_ucIletisim_TiciCaptcha_TxtCpatcha');
-            if (captchaInput) {
-                captchaInput.setAttribute('placeholder', 'Kodu yazın');
-                captchaInput.setAttribute('autocomplete', 'off');
-            }
-            appendIfFound(fields, captcha);
-        }
-
         if (submit) submit.value = 'Mesajı gönder';
-        appendIfFound(fields, submitWrap);
 
-        form.innerHTML = '';
-        form.appendChild(fields);
+        // Keep Ticimax's captcha wrappers, hidden fields and initialization nodes intact.
+        Array.prototype.forEach.call(form.querySelectorAll('.rowLeft, .iletisimMesaj'), function (row) {
+            row.classList.add('mo-contact-obsolete');
+        });
+        form.insertBefore(fields, form.firstChild);
+        normalizeCaptcha(form);
         form.setAttribute('data-mo-normalized', 'true');
     }
 
@@ -620,9 +635,29 @@
             href: mapAnchor.getAttribute('href') || fallback.href,
             image: mapImage ? (mapImage.getAttribute('src') || fallback.image) : fallback.image
         };
-        var mapParagraph = mapAnchor.closest('p');
-        if (mapParagraph && mapParagraph.parentNode) mapParagraph.parentNode.removeChild(mapParagraph);
         return info;
+    }
+
+    function hideLegacyMaps(scope) {
+        Array.prototype.forEach.call(scope.querySelectorAll('a[href*="google.com"][href*="maps"], a[href*="maps.google."], a[href*="maps.app.goo.gl"], iframe[src*="google.com/maps"], img[src*="/uploads/editoruploads/adsiz.png"]'), function (map) {
+            if (map.closest('#' + ROOT_ID)) return;
+            map.classList.add('mo-contact-legacy-map');
+        });
+    }
+
+    function watchDynamicContent(scope) {
+        if (!window.MutationObserver) return;
+        var updateQueued = false;
+        var observer = new MutationObserver(function () {
+            if (updateQueued) return;
+            updateQueued = true;
+            window.requestAnimationFrame(function () {
+                updateQueued = false;
+                normalizeCaptcha(document.getElementById('mainHolder_ucIletisim_divMailGonder'));
+                hideLegacyMaps(scope);
+            });
+        });
+        observer.observe(scope, { childList:true, subtree:true });
     }
 
     function removeEmptyParagraphs(content) {
@@ -642,7 +677,9 @@
         addFonts();
         addStyles();
 
-        var mapInfo = findMapInfo(content);
+        // Ticimax may nest two containers with the same divIcerik ID.
+        var mapScope = document.getElementById('divIcerik') || content.parentNode;
+        var mapInfo = findMapInfo(mapScope);
         removeEmptyParagraphs(content);
         var shell = createShell(mapInfo);
 
@@ -652,6 +689,8 @@
         normalizeContactForm(form);
 
         document.body.classList.add('mo-contact-ready');
+        hideLegacyMaps(mapScope);
+        watchDynamicContent(mapScope);
         return true;
     }
 
