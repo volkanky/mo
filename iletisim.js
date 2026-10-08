@@ -3,6 +3,8 @@
 
     var ROOT_ID = 'moContact';
     var STYLE_ID = 'moContactStyles';
+    var VERSION = '20261008-3';
+    var apiForms = new WeakMap();
     var PHONE_NUMBER = '905342796028';
     var PHONE_DISPLAY = '+90 534 279 60 28';
     var WHATSAPP_MESSAGE = 'Merhaba Motif İstanbul, ürünleriniz ve sipariş süreci hakkında bilgi almak istiyorum.';
@@ -18,10 +20,12 @@
     }
 
     function addStyles() {
-        if (document.getElementById(STYLE_ID)) return;
+        var style = document.getElementById(STYLE_ID);
+        if (style && style.getAttribute('data-version') === VERSION) return;
 
-        var style = document.createElement('style');
+        style = style || document.createElement('style');
         style.id = STYLE_ID;
+        style.setAttribute('data-version', VERSION);
         style.textContent = `
             body.mo-contact-ready #divIcerik.ticiContainer,
             body.mo-contact-ready #divIcerik .centerCount.iletisimContent {
@@ -298,6 +302,8 @@
             }
             #${ROOT_ID} .iletisimForm .mo-captcha {
                 display:block!important;
+                min-width:0!important;
+                overflow:visible!important;
                 padding:14px!important;
                 border:1px solid var(--mo-line)!important;
                 border-radius:8px;
@@ -305,8 +311,8 @@
             }
             .mo-captcha-label { display:block; margin-bottom:9px; color:#71818d; font-size:10px; font-weight:700; letter-spacing:.035em; }
             #${ROOT_ID} .mo-captcha > .Right { display:block!important; overflow:visible!important; }
-            #${ROOT_ID} .captchaImageBox { display:flex!important; align-items:center; gap:10px; min-height:48px; margin-bottom:10px!important; overflow:visible!important; }
-            #${ROOT_ID} .captchaImage { display:block!important; float:none!important; width:180px!important; max-width:calc(100% - 50px)!important; min-width:0!important; height:48px!important; visibility:visible!important; opacity:1!important; object-fit:contain; border-radius:6px; background:#fff; }
+            #${ROOT_ID} .captchaImageBox { display:flex!important; float:none!important; width:100%!important; align-items:center; gap:10px; min-height:48px; margin-bottom:10px!important; overflow:visible!important; }
+            #${ROOT_ID} .captchaImage { display:block!important; float:none!important; flex:0 1 180px!important; width:180px!important; max-width:calc(100% - 50px)!important; min-width:0!important; height:54px!important; visibility:visible!important; opacity:1!important; object-fit:contain; border-radius:6px; background:#fff; }
             #${ROOT_ID} .captchaRenew {
                 display:grid!important;
                 place-items:center;
@@ -318,7 +324,13 @@
                 border-radius:8px;
                 background:#fff;
             }
-            #${ROOT_ID} .captchaInputBox { width:100%!important; }
+            #${ROOT_ID} .captchaInputBox { float:none!important; width:100%!important; }
+            .mo-captcha-status { margin:8px 0; color:var(--mo-muted); font-size:12px; line-height:1.5; }
+            #${ROOT_ID} .mo-captcha-status[hidden],
+            #${ROOT_ID} .mo-contact-form-status[hidden] { display:none!important; }
+            .mo-contact-form-status { margin:15px 0 0; color:#a72a35; font-size:13px; line-height:1.6; }
+            .mo-contact-form-status[data-state='success'] { color:var(--mo-teal); }
+            #${ROOT_ID} #mainHolder_ucIletisim_btnGonder:disabled { cursor:wait; opacity:.6; transform:none; }
             #${ROOT_ID} .iletisimBtn { display:block!important; width:100%!important; }
             #${ROOT_ID} #mainHolder_ucIletisim_btnGonder {
                 display:flex!important;
@@ -494,6 +506,181 @@
             captchaInput.setAttribute('placeholder', 'Kodu yazın');
             captchaInput.setAttribute('autocomplete', 'off');
         }
+        var apiState = apiForms.get(form);
+        if (apiState) configureApiCaptcha(form, apiState);
+    }
+
+    function getContactInputs(form) {
+        return {
+            name: form.querySelector('#mainHolder_ucIletisim_txtbxAdSoyad'),
+            phone: pickPhoneInput(form),
+            mail: form.querySelector('#mainHolder_ucIletisim_txtbxMail'),
+            message: form.querySelector('#mainHolder_ucIletisim_txtbxMesaj'),
+            captcha: form.querySelector('#mainHolder_ucIletisim_TiciCaptcha_TxtCpatcha')
+        };
+    }
+
+    function updateSubmit(form, state) {
+        var submit = form.querySelector('#mainHolder_ucIletisim_btnGonder');
+        if (!submit) return;
+        submit.disabled = state.sending || !state.captchaReady;
+        submit.value = state.sending ? 'Gönderiliyor...' : 'Mesajı gönder';
+    }
+
+    function refreshApiCaptcha(form, state) {
+        var image = form.querySelector('.iletisimCaptcha .captchaImage');
+        if (!image) return;
+        state.captchaReady = false;
+        var input = getContactInputs(form).captcha;
+        if (input) input.value = '';
+        state.captchaStatus.hidden = false;
+        state.captchaStatus.textContent = 'Güvenlik kodu yükleniyor...';
+        updateSubmit(form, state);
+        state.sequence += 1;
+        // The current Ticimax API creates a code tied to the visitor's session.
+        image.src = '/api/Captcha/GetCaptcha?v=' + Date.now() + '-' + state.sequence;
+    }
+
+    function configureApiCaptcha(form, state) {
+        var captcha = form.querySelector('.iletisimCaptcha');
+        var image = captcha && captcha.querySelector('.captchaImage');
+        var renew = captcha && captcha.querySelector('.captchaRenew');
+        if (!image || !renew) return;
+
+        if (!captcha.contains(state.captchaStatus)) captcha.appendChild(state.captchaStatus);
+        if (!renew.hasAttribute('data-mo-api-renew')) {
+            renew.setAttribute('data-mo-api-renew', 'true');
+            renew.setAttribute('href', '#');
+            renew.removeAttribute('onclick');
+            renew.setAttribute('title', 'Güvenlik kodunu yenile');
+            renew.setAttribute('aria-label', 'Güvenlik kodunu yenile');
+            renew.addEventListener('click', function (event) {
+                event.preventDefault();
+                if (!state.sending) refreshApiCaptcha(form, state);
+            });
+        }
+        if (state.image === image) return;
+        state.image = image;
+        image.alt = 'Ticimax güvenlik kodu';
+        image.addEventListener('load', function () {
+            if (state.image !== image) return;
+            state.captchaReady = image.naturalWidth > 0;
+            state.captchaStatus.hidden = state.captchaReady;
+            updateSubmit(form, state);
+        });
+        image.addEventListener('error', function () {
+            if (state.image !== image) return;
+            state.captchaReady = false;
+            state.captchaStatus.hidden = false;
+            state.captchaStatus.textContent = 'Güvenlik kodu yüklenemedi. Lütfen yenileyin.';
+            updateSubmit(form, state);
+        });
+        refreshApiCaptcha(form, state);
+    }
+
+    function formatContactPhone(value) {
+        var trimmed = value.trim();
+        var digits = trimmed.replace(/\D/g, '');
+        if (trimmed.indexOf('+') === 0) return '+' + digits;
+        if (trimmed.indexOf('00') === 0) return '+' + digits.slice(2);
+        if (digits.length === 11 && digits.charAt(0) === '0') digits = digits.slice(1);
+        if (digits.length === 10) return '+90' + digits;
+        if (digits.length === 12 && digits.indexOf('90') === 0) return '+' + digits;
+        return trimmed;
+    }
+
+    async function sendApiContact(form, state) {
+        if (state.sending || !state.captchaReady) return;
+        var inputs = getContactInputs(form);
+        var firstInvalid = null;
+        var errorMessage = '';
+        var checks = [
+            [inputs.name, function (value) { return value.length > 0; }, 'Lütfen adınızı ve soyadınızı yazın.'],
+            [inputs.phone, function (value) { return /^\+[1-9]\d{7,14}$/.test(formatContactPhone(value)); }, 'Lütfen geçerli bir telefon numarası yazın.'],
+            [inputs.mail, function (value) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value); }, 'Lütfen geçerli bir e-posta adresi yazın.'],
+            [inputs.message, function (value) { return value.length > 0; }, 'Lütfen mesajınızı yazın.'],
+            [inputs.captcha, function (value) { return value.length > 0; }, 'Lütfen resimdeki güvenlik kodunu yazın.']
+        ];
+        checks.forEach(function (check) {
+            var input = check[0];
+            var valid = input && check[1](input.value.trim());
+            if (input) input.setAttribute('aria-invalid', valid ? 'false' : 'true');
+            if (!valid && !errorMessage) {
+                firstInvalid = input;
+                errorMessage = check[2];
+            }
+        });
+        state.status.hidden = false;
+        state.status.setAttribute('data-state', 'error');
+        if (errorMessage) {
+            state.status.textContent = errorMessage;
+            if (firstInvalid) firstInvalid.focus();
+            return;
+        }
+
+        state.status.hidden = true;
+        state.sending = true;
+        updateSubmit(form, state);
+        try {
+            var response = await fetch('/api/member/SendContactForm', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                body: JSON.stringify({
+                    AdSoyad: inputs.name.value.trim(),
+                    Telefon: formatContactPhone(inputs.phone.value),
+                    Mail: inputs.mail.value.trim(),
+                    Mesaj: inputs.message.value.trim(),
+                    CaptchaCode: inputs.captcha.value.trim()
+                })
+            });
+            if (!response.ok) throw new Error('Contact request failed');
+            var result = await response.json();
+            if (result.isError === false) {
+                Object.keys(inputs).forEach(function (key) { inputs[key].value = ''; });
+                state.status.setAttribute('data-state', 'success');
+                state.status.textContent = 'Mesajınız gönderildi. Teşekkür ederiz.';
+            } else {
+                state.status.textContent = result.errorMessage || 'Mesajınız gönderilemedi. Lütfen yeniden deneyin.';
+            }
+            refreshApiCaptcha(form, state);
+        } catch (error) {
+            state.status.textContent = 'Mesajınızın gönderildiği doğrulanamadı. Lütfen yeniden deneyin.';
+        } finally {
+            state.status.hidden = false;
+            state.sending = false;
+            updateSubmit(form, state);
+        }
+    }
+
+    function connectTicimaxApi(form) {
+        // Copied Web Forms controls on a Content page have no working postback runtime.
+        if (apiForms.has(form) || (window.pageType !== 'Content' && typeof window.WebForm_DoPostBackWithOptions === 'function' && typeof window.__doPostBack === 'function')) return;
+        var submit = form.querySelector('#mainHolder_ucIletisim_btnGonder');
+        if (!submit) return;
+        var status = document.createElement('p');
+        status.className = 'mo-contact-form-status';
+        status.setAttribute('role', 'status');
+        status.setAttribute('aria-live', 'polite');
+        status.hidden = true;
+        form.appendChild(status);
+        var captchaStatus = document.createElement('p');
+        captchaStatus.className = 'mo-captcha-status';
+        captchaStatus.setAttribute('role', 'status');
+        captchaStatus.hidden = true;
+        var state = { status:status, captchaStatus:captchaStatus, image:null, sequence:0, captchaReady:false, sending:false };
+        apiForms.set(form, state);
+        form.setAttribute('data-mo-contact-mode', 'ticimax-api');
+        submit.removeAttribute('onclick');
+        submit.type = 'button';
+        submit.addEventListener('click', function () { sendApiContact(form, state); });
+        var parentForm = form.closest('form');
+        if (parentForm) parentForm.addEventListener('submit', function (event) {
+            if (!form.contains(document.activeElement)) return;
+            event.preventDefault();
+            sendApiContact(form, state);
+        });
+        configureApiCaptcha(form, state);
     }
 
     function normalizeContactForm(form) {
@@ -641,7 +828,9 @@
     function hideLegacyMaps(scope) {
         Array.prototype.forEach.call(scope.querySelectorAll('a[href*="google.com"][href*="maps"], a[href*="maps.google."], a[href*="maps.app.goo.gl"], iframe[src*="google.com/maps"], img[src*="/uploads/editoruploads/adsiz.png"]'), function (map) {
             if (map.closest('#' + ROOT_ID)) return;
-            map.classList.add('mo-contact-legacy-map');
+            var paragraph = map.closest('p');
+            var target = paragraph && !paragraph.textContent.trim() ? paragraph : map;
+            if (target.parentNode) target.parentNode.removeChild(target);
         });
     }
 
@@ -672,21 +861,27 @@
         var contactInfo = content && content.querySelector('.iletisimLeft');
         var form = document.getElementById('mainHolder_ucIletisim_divMailGonder') || (content && content.querySelector('.iletisimForm'));
 
-        if (!content || !contactInfo || !form || document.getElementById(ROOT_ID)) return false;
+        if (!content || !contactInfo || !form) return false;
 
         addFonts();
         addStyles();
 
         // Ticimax may nest two containers with the same divIcerik ID.
         var mapScope = document.getElementById('divIcerik') || content.parentNode;
-        var mapInfo = findMapInfo(mapScope);
-        removeEmptyParagraphs(content);
-        var shell = createShell(mapInfo);
-
-        contactInfo.parentNode.insertBefore(shell, contactInfo);
-        shell.querySelector('#moContactInfoSlot').appendChild(contactInfo);
-        shell.querySelector('#moContactFormSlot').appendChild(form);
+        var shell = document.getElementById(ROOT_ID);
+        if (shell && shell.getAttribute('data-mo-contact-version') === VERSION) return true;
+        if (!shell) {
+            var mapInfo = findMapInfo(mapScope);
+            removeEmptyParagraphs(content);
+            shell = createShell(mapInfo);
+            contactInfo.parentNode.insertBefore(shell, contactInfo);
+            shell.querySelector('#moContactInfoSlot').appendChild(contactInfo);
+            shell.querySelector('#moContactFormSlot').appendChild(form);
+        }
+        shell.setAttribute('data-mo-contact-version', VERSION);
         normalizeContactForm(form);
+        normalizeCaptcha(form);
+        connectTicimaxApi(form);
 
         document.body.classList.add('mo-contact-ready');
         hideLegacyMaps(mapScope);
