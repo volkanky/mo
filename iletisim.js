@@ -3,7 +3,7 @@
 
     var ROOT_ID = 'moContact';
     var STYLE_ID = 'moContactStyles';
-    var VERSION = '20261008-3';
+    var VERSION = '20261008-4';
     var apiForms = new WeakMap();
     var PHONE_NUMBER = '905342796028';
     var PHONE_DISPLAY = '+90 534 279 60 28';
@@ -155,8 +155,8 @@
             }
             #${ROOT_ID} .iletisimLeft {
                 display:grid!important;
-                grid-template-columns:1fr 1fr;
-                gap:0 22px;
+                grid-template-columns:minmax(0,1fr);
+                gap:0;
                 float:none!important;
                 width:100%!important;
                 margin:0!important;
@@ -175,8 +175,19 @@
                 border:0!important;
                 background:transparent!important;
             }
-            #${ROOT_ID} .iletisimLeft .iletisimLeftAdres,
-            #${ROOT_ID} .iletisimLeft .iletisimLeftEposta { grid-column:1 / -1; }
+            #${ROOT_ID} .iletisimLeft .iletisimLeftAdres { order:1; }
+            #${ROOT_ID} .iletisimLeft .iletisimLeftTelefon { order:2; }
+            #${ROOT_ID} .iletisimLeft .iletisimLeftFirmaAdi { order:3; }
+            #${ROOT_ID} .iletisimLeft .iletisimLeftFaks { order:4; }
+            #${ROOT_ID} .iletisimLeft .iletisimLeftEposta { order:5; }
+            #${ROOT_ID} .iletisimLeft .iletisimLeftAdres .Right { font-size:12px!important; }
+            #${ROOT_ID} .iletisimLeft .mo-contact-phone-links {
+                display:flex!important;
+                flex-wrap:wrap;
+                align-items:center;
+                gap:8px 24px;
+            }
+            #${ROOT_ID} .mo-contact-phone-links a { white-space:nowrap; }
             #${ROOT_ID} .iletisimLeft .Left {
                 float:none!important;
                 width:auto!important;
@@ -486,6 +497,30 @@
     function pickPhoneInput(form) {
         return form.querySelector('input.ticiTelInput[name="ctl00$mainHolder$ucIletisim$txtbxTelefon"]') ||
             form.querySelector('input[name="ctl00$mainHolder$ucIletisim$txtbxTelefon"]');
+    }
+
+    function normalizeContactInfo(info) {
+        var address = info.querySelector('.iletisimLeftAdres .Right');
+        if (address && !address.querySelector('a')) {
+            address.textContent = address.textContent.replace(/\s+/g, ' ').trim().toLocaleLowerCase('tr-TR').replace(/(^|[\s/])([^\s/])/g, function (match, prefix, letter) {
+                return prefix + letter.toLocaleUpperCase('tr-TR');
+            });
+        }
+
+        var phoneRow = info.querySelector('.iletisimLeftTelefon .Right');
+        if (!phoneRow || phoneRow.classList.contains('mo-contact-phone-links')) return;
+        var numbers = phoneRow.textContent.match(/\+?90\s*\d{3}\s*\d{3}\s*\d{2}\s*\d{2}|0\d{3}\s*\d{3}\s*\d{2}\s*\d{2}/g);
+        if (!numbers || numbers.length < 2) return;
+
+        phoneRow.textContent = '';
+        phoneRow.classList.add('mo-contact-phone-links');
+        numbers.forEach(function (number) {
+            var link = document.createElement('a');
+            var digits = number.replace(/\D/g, '');
+            link.href = 'tel:' + (digits.charAt(0) === '0' ? '+90' + digits.slice(1) : '+' + digits);
+            link.textContent = number.replace(/\s+/g, ' ').trim();
+            phoneRow.appendChild(link);
+        });
     }
 
     function normalizeCaptcha(form) {
@@ -879,6 +914,7 @@
             shell.querySelector('#moContactFormSlot').appendChild(form);
         }
         shell.setAttribute('data-mo-contact-version', VERSION);
+        normalizeContactInfo(contactInfo);
         normalizeContactForm(form);
         normalizeCaptcha(form);
         connectTicimaxApi(form);
