@@ -709,7 +709,11 @@
                 box-shadow: 0 12px 26px rgba(3, 35, 94, .22) !important;
             }
 
-            body .fancybox-close::before,
+            body .fancybox-close::before {
+                content: none !important;
+                display: none !important;
+            }
+
             body .modal-close::before {
                 content: "×";
                 display: block;
