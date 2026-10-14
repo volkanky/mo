@@ -640,7 +640,7 @@
             }
 
             body .fancybox-wrap {
-                max-width: min(460px, calc(100vw - 28px)) !important;
+                max-width: min(960px, calc(100vw - 28px)) !important;
                 left: 50% !important;
                 transform: translateX(-50%) !important;
             }
@@ -655,10 +655,41 @@
             }
 
             body .fancybox-inner {
-                width: min(430px, calc(100vw - 32px)) !important;
+                width: auto !important;
+                max-width: min(920px, calc(100vw - 32px)) !important;
                 min-height: 250px !important;
                 border-radius: 18px !important;
                 background: #fff !important;
+            }
+
+            body .fancybox-type-image,
+            body .fancybox-type-image .fancybox-skin,
+            body .fancybox-type-image .fancybox-outer,
+            body .fancybox-type-image .fancybox-inner {
+                width: auto !important;
+                height: auto !important;
+                max-width: min(920px, calc(100vw - 32px)) !important;
+                max-height: calc(100vh - 48px) !important;
+            }
+
+            body .fancybox-type-image .fancybox-inner {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                min-height: 0 !important;
+                padding: clamp(16px, 2.6vw, 28px) !important;
+            }
+
+            body .fancybox-inner img,
+            body .fancybox-image,
+            body #fancybox-img {
+                display: block !important;
+                width: auto !important;
+                height: auto !important;
+                max-width: calc(100vw - 88px) !important;
+                max-height: calc(100vh - 104px) !important;
+                object-fit: contain !important;
+                object-position: center center !important;
             }
 
             body .fancybox-close,
@@ -674,7 +705,24 @@
                 border: 0 !important;
                 border-radius: 50% !important;
                 background: var(--mo-pd-deep) !important;
+                background-image: none !important;
                 box-shadow: 0 12px 26px rgba(3, 35, 94, .22) !important;
+            }
+
+            body .fancybox-close::before,
+            body .modal-close::before {
+                content: "×";
+                display: block;
+                color: #fff !important;
+                font: 900 24px/1 "Manrope", "DM Sans", system-ui, sans-serif !important;
+                text-indent: 0 !important;
+                transform: translateY(-1px);
+            }
+
+            body .fancybox-close::after,
+            body .modal-close::after {
+                color: #fff !important;
+                background: none !important;
             }
 
             body .modal-content-html {
