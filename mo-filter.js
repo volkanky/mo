@@ -2,13 +2,14 @@
     'use strict';
 
     var STYLE_ID = 'moFilterStyles';
-    var VERSION = '20261008-4';
+    var VERSION = '20261015-1';
     var collapsedPanels = new Set();
     var updateQueued = false;
     var initialized = false;
     var viewType = 4;
     var filterSignature;
     var sliders = new WeakSet();
+    var mobileProductActions = window.matchMedia('(max-width:1041px)');
     var priceFormat = new Intl.NumberFormat('tr-TR', { style:'currency', currency:'TRY', minimumFractionDigits:2, maximumFractionDigits:2 });
     var colors = {
         'BEJ':'#e6d7bf', 'TURKUAZ':'#42b7bb', 'LACİVERT':'#03235e',
@@ -246,6 +247,10 @@
                 body.mo-filter-ready #ProductPageProductList.pr_hrz .mo-product-actions > .examineIcon,
                 body.mo-filter-ready #ProductPageProductList.pr_hrz .mo-product-actions a { width:28px; height:34px; }
             }
+            @media(max-width:1041px) {
+                body.mo-filter-ready #ProductPageProductList .productDetail { height:auto!important; min-height:0!important; }
+                body.mo-filter-ready #ProductPageProductList .productDetail > .mo-product-actions { position:static!important; width:100%!important; max-width:none!important; height:auto!important; margin:10px 0 0!important; opacity:1; pointer-events:auto; transform:none!important; box-shadow:none; }
+            }
             body.mo-filter-ready #ProductPageProductList.sort_4 .productDetail { padding:10px; }
             body.mo-filter-ready #ProductPageProductList.pr_hrz > .ItemOrj:not([data-wide="full"]) { width:100%!important; max-width:100%!important; flex:0 0 100%!important; }
             body.mo-filter-ready #ProductPageProductList.pr_hrz .productItem:not(.isBanner) { display:grid; grid-template-columns:180px minmax(0,1fr); align-items:center; width:100%; margin-bottom:16px; text-align:left; }
@@ -338,7 +343,7 @@
         item.querySelectorAll('.urunListStokUyari, .urunListSonUrun').forEach(function (badge) {
             if (badge.parentNode !== overlay) overlay.appendChild(badge);
         });
-        var actions = overlay.querySelector('.mo-product-actions');
+        var actions = item.querySelector('.mo-product-actions');
         var controls = [
             ['.mycartIcon', 'Sepete Ekle'],
             ['.favori', 'Favorilerime Ekle'],
@@ -366,6 +371,15 @@
                 link.setAttribute('role', 'button');
             }
         });
+        if (!actions) return;
+        var detail = item.querySelector('.productDetail');
+        var price = detail && detail.querySelector('.productPrice');
+        if (mobileProductActions.matches && detail) {
+            if (actions.parentNode !== detail || (price && actions.previousElementSibling !== price)) {
+                if (price) price.insertAdjacentElement('afterend', actions);
+                else detail.appendChild(actions);
+            }
+        } else if (actions.parentNode !== overlay) overlay.appendChild(actions);
     }
 
     function prepareProducts() {
@@ -587,6 +601,8 @@
             event.preventDefault();
             if (control.getAttribute('aria-disabled') !== 'true') control.click();
         });
+        if (mobileProductActions.addEventListener) mobileProductActions.addEventListener('change', queueUpdate);
+        else mobileProductActions.addListener(queueUpdate);
     }
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once:true });
